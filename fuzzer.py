@@ -17,6 +17,7 @@ class ConfigFuzzer:
         pass
 
 
+
 if len(argv) == 3:
     config = argv[1]
     file = argv[2]
