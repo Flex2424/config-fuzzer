@@ -2,6 +2,8 @@ import subprocess
 from sys import argv, exit
 import binascii
 from colorama import *
+import os
+from shutil import copyfile
 
 
 class ConfigFuzzer:
@@ -17,7 +19,33 @@ class ConfigFuzzer:
         return out, err
 
     def fuzzing(self):
-        pass
+        fail_count = 0
+        for border in self.borders:
+            print(border)
+            test_config = self.bytes_return(self.config_name)
+            cur_str = ' '.join(test_config[i:i + 2] for i in range(0, len(test_config), 2))
+            cur_list = cur_str.split(' ')
+            border_size = 0
+            for byte in range(border[0], border[1]):
+                cur_list[byte] = 'ff'
+            new_str = ''.join(cur_list)
+            new_str = ' '.join(new_str[i:i + 2] for i in range(0, len(new_str), 2))
+            new_bytes = new_str.replace(' ', '')
+            encode_new_bytes = new_bytes.encode('ascii')
+            content = binascii.unhexlify(encode_new_bytes)
+            os.chdir('test/')
+            with open(self.config_name, 'wb') as fout:
+                fout.write(content)
+            fout.close()
+            info = self.execute_program()
+            if len(info[0]) == 0:
+                print("Oops, program failed :D")
+                fail_count = fail_count + 1
+                copyfile(
+                    'config_18',
+                    'failed_{0}'.format(str(fail_count))
+                )
+            os.chdir('..')
 
     def open_file(self):
         with open(self.config_name, 'rb') as f:
@@ -106,6 +134,7 @@ if len(argv) == 3:
     test = obj.compare_two_config()
     print("Differences in configs:", test)
     obj.find_borders()
+    obj.fuzzing()
 else:
     print("Usage: ./script.py config file")
     exit(-1)
